@@ -1,0 +1,20 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    app: bindery-api
+  name: bindery-api
+  namespace: cp-3429296
+spec:
+  maxReplicas: 1
+  metrics:
+
+resource:  name: cpu  target:    averageUtilization: 75    type: Utilizationtype: ResourceminReplicas: 1scaleTargetRef:apiVersion: apps/v1kind: Deploymentname: bindery-apibehavior:scaleDown:  policies:
+
+type: Percentvalue: 25periodSeconds: 60
+
+type: Podsvalue: 1periodSeconds: 60selectPolicy: MaxstabilizationWindowSeconds: 300scaleUp:policies:
+
+type: PodsperiodSeconds: 15value: 4
+
+type: PercentperiodSeconds: 15value: 100selectPolicy: MaxstabilizationWindowSeconds: 0

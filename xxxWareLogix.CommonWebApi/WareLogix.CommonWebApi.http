@@ -1,0 +1,6 @@
+@WareLogix.CommonWebApi_HostAddress = http://localhost:5087
+
+GET {{WareLogix.CommonWebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

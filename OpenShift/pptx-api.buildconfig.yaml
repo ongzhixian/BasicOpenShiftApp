@@ -1,26 +1,17 @@
 apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
-  annotations:
-    openshift.io/generated-by: OpenShiftNewBuild
-  creationTimestamp: "2024-05-22T00:47:11Z"
-  generation: 2
   labels:
     build: pptx-api
   name: pptx-api
   namespace: oc-sandbox
-  resourceVersion: "306747"
-  uid: 3c273564-85f0-4ff3-82ef-fa333e8e6c94
 spec:
-  failedBuildsHistoryLimit: 5
-  nodeSelector: null
+  failedBuildsHistoryLimit: 1
+  successfulBuildsHistoryLimit: 1
   output:
     to:
       kind: ImageStreamTag
       name: pptx-api:latest
-  postCommit: {}
-  resources: {}
-  runPolicy: Serial
   source:
     binary: {}
     type: Binary
@@ -31,13 +22,3 @@ spec:
         name: dotnet:6.0
         namespace: openshift
     type: Source
-  successfulBuildsHistoryLimit: 5
-  triggers:
-  - github:
-      secret: 4aVJAMPAgHEj_TlghGKv
-    type: GitHub
-  - generic:
-      secret: m_tXkDKWTNU33JvLg6Cf
-    type: Generic
-status:
-  lastVersion: 1

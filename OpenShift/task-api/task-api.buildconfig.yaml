@@ -1,0 +1,20 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  labels:
+    build: task-api
+  name: task-api
+spec:
+  output:
+    to:
+      kind: DockerImage
+      name: docker.io/zhixian/task-api
+  source:
+    binary: {}
+    type: Binary
+  strategy:
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: mcr.microsoft.com/dotnet/aspnet:6.0
+    type: Source

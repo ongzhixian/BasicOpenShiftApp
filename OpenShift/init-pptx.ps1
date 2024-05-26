@@ -1,0 +1,1 @@
+#oc apply -f .\OpenShift\pptx-api.buildconfig.yaml

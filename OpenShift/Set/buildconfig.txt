@@ -1,0 +1,28 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  labels:
+    app: bindery-coordinator-webapi
+  name: bindery-coordinator-webapi
+  namespace: cp-3429296
+spec:
+  successfulBuildsHistoryLimit: 1
+  failedBuildsHistoryLimit: 1
+  output:
+    pushSecret:
+      name: registry-nonprod
+    to:
+      kind: DockerImage
+      name: registry-nonprod.sdi.corp.bankofamerica.com/72899/bindery-coordinator-webapi:latest
+  strategy:
+    type: Source
+    sourceStrategy:
+      incremental: true
+      from:
+        kind: DockerImage
+        name: registry-nonprod.sdi.corp.bankofamerica.com/72899/gcib-dotnet6-rhel8:latest
+      pullSecret:
+        name: registry-nonprod
+  source:
+    type: Binary
+    binary: {}

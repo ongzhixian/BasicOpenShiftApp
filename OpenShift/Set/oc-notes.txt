@@ -1,0 +1,258 @@
+# oc
+
+## LOGIN!!!!
+
+oc login -u zkrs6a9  --server=https://api.useast16.bofa.com:6443
+
+oc login https://api.useast16.bofa.com:6443 -u zkrs6a9 -p <password>
+
+
+## tldr;
+
+oc create -f .\OpenShift\bindery-api.buildconfig.yaml
+dotnet publish --configuration Release
+oc start-build bindery-api --from-dir=Bindery.Rest/bin/Release/net6.0/publish --follow
+oc create -f .\OpenShift\bindery-api.deployment.yaml
+oc create service clusterip bindery-api --tcp=80:8080
+oc expose service/bindery-api --port=8080
+oc get routes bindery-api
+
+curl.exe -H 'accept: text/plain' http://bindery-api-cp-3429296.apps.useast16.bofa.com/WeatherForecast
+Measure-Command { [System.Linq.Enumerable]::Range(1, 1) | ForEach-Object { Start-Job -FilePath "H:/notes/job-scripts/k8s-test-job1.ps1" -ArgumentList $_ } }
+Measure-Command { [System.Linq.Enumerable]::Range(1, 1) | ForEach-Object { Start-Job -FilePath "H:/notes/job-scripts/local-test-job1.ps1" -ArgumentList $_ } }
+
+
+## NEW APPLICATION!
+
+Create a buildconfig first.
+
+oc create -f .\sample-weather-forecast-api.yaml
+
+dotnet publish --configuration Release
+
+oc start-build sample-weather-forecast-api --from-dir=WeatherForecast/bin/Release/net6.0/publish --follow
+
+oc create -f .\sample-weather-forecast-api.deployment.yaml
+
+oc create service clusterip sample-weather-forecast-api --tcp=8080:8080
+oc create service clusterip sample-weather-forecast-api --tcp=80:8080  # --tcp=<PUBLIC-Service-PORT>:<POD-PORT>
+oc create service clusterip sample-weather-forecast-api --tcp=80:8080,443:8081
+
+oc delete service sample-weather-forecast-api
+
+oc describe service sample-weather-forecast-api
+
+oc expose service/sample-weather-forecast-api --port=8080
+
+oc get routes
+
+
+## Deployment updates
+
+oc apply -f .\sample-weather-forecast-api.deployment.yaml
+
+oc describe deployment sample-weather-forecast-api
+
+dotnet publish --configuration Release
+
+oc start-build sample-weather-forecast-api --from-dir=WeatherForecast/bin/Release/net6.0/publish --follow
+
+oc rollout restart deployment sample-weather-forecast-api
+
+oc edit deployment sample-weather-forecast-api
+
+
+
+
+## Debug 
+
+``` Powershell ;Test port 
+Test-NetConnection sample-weather-forecast-api-cp-3429296.apps.useast16.bofa.com -Port 80
+```
+
+curl.exe -H 'accept: text/plain' https://localhost:7003/WeatherForecast
+curl.exe -H 'accept: text/plain' http://sample-weather-forecast-api-cp-3429296.apps.useast16.bofa.com/WeatherForecast
+curl.exe -H 'accept: text/plain' http://bindery-api-cp-3429296.apps.useast16.bofa.com/WeatherForecast
+
+
+oc describe is dotnet
+
+
+## Lists
+
+oc new-app --list
+
+
+oc logs -f bc/sample-weather-forecast-api
+
+oc logs bc/sample-weather-forecast-api
+
+
+##
+
+export ASPNETCORE_URLS="http://localhost:5001;https://localhost:5002"
+
+export ASPNETCORE_URLS="http://*:8080;https://*:8081"
+
+
+## Customizing images using Source-to-Image (S2I) scripts
+
+https://docs.openshift.com/container-platform/4.12/openshift_images/using_images/using-s21-images.html
+
+
+https://docs.openshift.com/container-platform/4.12/openshift_images/using_images/customizing-s2i-images.html
+
+
+
+## Source-to-Image S2I
+
+https://github.com/openshift/source-to-image/releases/tag/v1.4.0
+
+## Liveness, Readiness, 
+
+Liveness Probe -- If failed, k8s will restart pod
+4 ways to test liveness:
+1.  command
+2.  HTTP request -- Any HTTP response code greater than or equal to 200 and less than 400 indicates success. Any other code indicates failure.
+3.  TCP
+4.  gRPC
+
+The `periodSeconds`` field specifies that the kubelet should perform a liveness probe every 3 seconds. 
+The `initialDelaySeconds` field tells the kubelet that it should wait 3 seconds before performing the first probe.
+
+Readiness -- to indicate when the service is ready to serve requests
+
+
+
+See: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#before-you-begin
+
+
+## TLS(SSL) Certificates
+
+
+!Important
+When extracting the secrets, it is best to use CMD instead of PowerShell!
+Otherwise when creating route, the certificate and key will be corrupted and and you will see error message "Exte...somethingValidation"
+PowerShell will write the files using Windows EOL (CRLF) compared to Unix (LF).
+In addition, PowerShell will encode file in UTF-16 LE BOM compared to UTF-8
+
+oc extract secret/sample-weather-forecast-api-certificate-secret --to=./secrets --confirm                   # Dumps ca.crt, tls.crt and tls.key (3 files) into secrets folder
+oc extract secret/sample-weather-forecast-api-certificate-secret --to=- > sample-weather-forecast-api.crt   # Cert that combines the above 3 files
+
+oc extract secret/sample-weather-forecast-api-certificate-secret --keys=tls.crt --to=- > sample-weather-forecast-api.crt
+oc extract secret/sample-weather-forecast-api-certificate-secret --keys=tls.key --to=- > sample-weather-forecast-api.pvk
+
+oc create route edge sample-weather-forecast-api --service=sample-weather-forecast-api --cert=./sample-weather-forecast-api.crt --key=./sample-weather-forecast-api.pvk --hostname=sample-weather-forecast-api-cp-3429296.apps.useast16.bofa.com
+
+curl.exe -vv https://sample-weather-forecast-api-cp-3429296.apps.useast16.bofa.com
+
+
+--- For bindery API
+
+oc extract secret/bindery-api-certificate-secret --keys=tls.crt --to=- > ./OpenShift/bindery-api.crt
+oc extract secret/bindery-api-certificate-secret --keys=tls.key --to=- > ./OpenShift/bindery-api.pvk
+
+oc create route edge bindery-api --service=bindery-api --cert=./OpenShift/bindery-api.crt --key=./OpenShift/bindery-api.pvk --hostname=bindery-api-cp-3429296.apps.useast16.bofa.com
+
+curl.exe -vv https://bindery-api-cp-3429296.apps.useast16.bofa.com
+         
+
+## Routing
+
+oc annotate route <route_name> --overwrite haproxy.router.openshift.io/timeout=<timeout><time_unit> 
+oc annotate route bindery-api --overwrite haproxy.router.openshift.io/timeout=300s
+
+oc annotate route <route_name> -n <namespace> --overwrite=true "haproxy.router.openshift.io/hsts_header"="max-age=31536000;includeSubDomains;preload"
+
+https://docs.openshift.com/container-platform/4.15/networking/routes/route-configuration.html
+
+
+
+## Putting ConfigMaps
+
+https://superuser.com/questions/631859/preferred-place-to-store-configuration-files-that-change-often
+
+The Filesystem Hierarchy Standard requires that configuration files for something installed under 
+/opt/xyz should go into /etc/opt/xyz, where the xyz must match. 
+That is, an application installed in a directory under /opt which requires host-specific configuration files 
+should have a matching directory under /etc/opt into which those configuration files go.
+
+/opt/xyz
+/etc/opt/xyz
+
+DOTNET_APP_PATH=/opt/app-root/app
+/opt/app-root/app 
+/etc/opt/app-root/app/appsettings.json
+
+
+## Side notes
+
+`oc describe build`
+Builds
+sample-weather-forecast-api-1
+sample-weather-forecast-api-2
+
+oc describe build sample-weather-forecast-api-2
+
+oc logs build/sample-weather-forecast-api-2
+
+oc exec -it pod/my-pod-7stht -- /bin/bash
+
+dc DeploymentConfig
+
+
+Hosting ASP.NET Core images with Docker over HTTPS
+https://learn.microsoft.com/en-us/aspnet/core/security/docker-https?view=aspnetcore-8.0
+docker pull mcr.microsoft.com/dotnet/samples:aspnetapp
+docker run --rm -it -p 8000:80 -p 8001:443 -e ASPNETCORE_URLS="https://+;http://+" -e ASPNETCORE_HTTPS_PORTS=8001 -e ASPNETCORE_Kestrel__Certificates__Default__Password="<CREDENTIAL_PLACEHOLDER>" -e ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx -v ${HOME}/.aspnet/https:/https/ mcr.microsoft.com/dotnet/samples:aspnetapp
+
+Set up continuous integration for .NET Core with OpenShift Pipelines
+https://developers.redhat.com/blog/2020/09/24/set-up-continuous-integration-for-net-core-with-openshift-pipelines
+
+Securing .NET Core on OpenShift using HTTPS
+https://developers.redhat.com/blog/2018/10/12/securing-net-core-on-openshift-using-https#https__certificates__private_keys__and_certificate_authorities
+
+Getting started with .NET on OpenShift Container Platform
+https://access.redhat.com/documentation/en-us/net/8.0/html-single/getting_started_with_.net_on_openshift_container_platform/index
+
+Chapter 6. Using .NET 6.0 on OpenShift Container Platform
+https://access.redhat.com/documentation/en-us/net/6.0
+https://access.redhat.com/documentation/en-us/net/6.0/html/getting_started_with_.net_on_rhel_9/using_net_6_0_on_openshift_container_platform
+
+.NET S2I Container Images
+https://github.com/redhat-developer/s2i-dotnetcore/tree/main
+
+Creating images
+https://docs.openshift.com/container-platform/4.12/openshift_images/create-images.html#images-create-s2i_create-images
+
+How to expose service on the Openshift? Enable TLS secure route?
+https://www.unixarena.com/2022/11/how-to-expose-service-on-the-openshift-enable-tls-secure-route.html/
+
+Source-To-Image (S2I)
+https://github.com/openshift/source-to-image
+
+Secured routes
+https://docs.openshift.com/container-platform/4.9/networking/routes/secured-routes.html
+
+
+https://www.cloudbees.com/cloudBees-continuous-delivery-release-orchestration/upgrade
+
+
+oc get pod -o json | ConvertFrom-Json | Select-Object items -ExpandProperty items
+
+https://developers.redhat.com/articles/2022/06/29/how-add-libraries-nodejs-container-s2i
+
+
+https://stackoverflow.com/questions/63458279/aws-lambda-dot-net-core-3-1-throws-gdip-exception-when-using-aspose-cells-for-n
+
+
+
+apt-get update
+apt-get install -y libgdiplus
+cd /usr/lib && ln -s libgdiplus.so gdiplus.dll
+apt-get install -y --no-install-recommends libc6-dev
+
+yum -y install libgdiplus
+..
+libc6-dev
+libgdiplus

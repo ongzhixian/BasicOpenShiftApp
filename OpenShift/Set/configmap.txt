@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bindery-coordinator-webapi
+  namespace: cp-3429296
+data:
+  appsettings.json: |
+    {
+      "Logging": {
+        "LogLevel": {
+          "Default": "Information",
+          "Microsoft.AspNetCore": "Warning"
+        }
+      },
+      "AllowedHosts": "*",
+      "Serilog": {
+        "MinimumLevel": {
+          "Default": "Information",
+          "Override": {
+            "Microsoft.AspNetCore": "Warning"
+          }
+        },
+        "WriteTo": [
+          {
+            "Name": "Console"
+          }
+        ]
+      },
+      "FeatureFlags": {
+        "VERSION": "3.0",
+        "USE_DING": true
+      }
+    }
+  CHILD_ID: "bindery-worker"
+  WORKER_ENDPOINT: "poc-sso-cp-3429296.apps.useast16.bofa.com"
+  TOTAL_WORKERS: "2"

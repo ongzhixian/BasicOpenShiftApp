@@ -1,0 +1,13 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  labels:
+    build: pptx-api
+  name: pptx-api
+  namespace: oc-sandbox
+spec:
+  lookupPolicy:
+    local: false
+# status:
+  # dockerImageRepository: image-registry.openshift-image-registry.svc:5000/oc-sandbox/pptx-api
+  # publicDockerImageRepository: default-route-openshift-image-registry.apps-crc.testing/oc-sandbox/pptx-api

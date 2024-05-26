@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: bindery-coordinator-webapi
+  name: bindery-coordinator-webapi
+  namespace: cp-3429296
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bindery-coordinator-webapi
+  template:
+    metadata:
+      labels:
+        app: bindery-coordinator-webapi
+      name: bindery-coordinator-webapi
+    spec:
+      containers:
+        - name: bindery-coordinator-webapi
+          image: registry-nonprod.sdi.corp.bankofamerica.com/72899/bindery-coordinator-webapi:latest
+          imagePullPolicy: Always
+          volumeMounts:
+          - name: appsettings-volume
+            mountPath: /etc/opt/app-root/app
+          resources:
+            requests:
+              memory: "10Mi"
+            limits:
+              memory: "2000Mi"
+          env:
+            - name: ASPNETCORE_URLS
+              value: http://:8080*
+            - name: USE_FILESTREAM
+              value: 'true'
+            # - name: LD_DEBUG
+            #   value: libs
+            - name: LD_LIBRARY_PATH
+              value: '/lib64/tls:/lib64:/usr/lib64/tls:/usr/lib64:/opt/app-root/app'
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            periodSeconds: 10
+            failureThreshold: 3
+            httpGet:
+              path: /ready
+              port: 8080
+              scheme: HTTP
+          livenessProbe:
+            periodSeconds: 15
+            failureThreshold: 3
+            httpGet:
+              path: /running
+              port: 8080
+              scheme: HTTP
+      volumes:
+        - name: appsettings-volume
+          configMap:
+            name: bindery-coordinator-webapi
+            items:
+            - key: appsettings.json
+              path: appsettings.json
+            - key: CHILD_ID
+              path: CHILD_ID_file1
+      imagePullSecrets:
+        - name: registry-nonprod
